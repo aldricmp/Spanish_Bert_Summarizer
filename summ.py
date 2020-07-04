@@ -9,7 +9,7 @@ from summarizer.coreference_handler import CoreferenceHandler
 from transformers import *
 
 
-def Summ(spacy_model, body, coreference, greedyness, min_lenght,max_lenght,bert_model ):
+def Summ(spacy_model, body,ratio, coreference, greedyness, min_lenght,max_lenght,bert_model ):
     # Loading Spanish BETO custom model (output_hidden_states must be set to True) and tokenizer
     custom_config = AutoConfig.from_pretrained(pretrained_model_name_or_path=bert_model)
     custom_config.output_hidden_states = True
@@ -24,6 +24,6 @@ def Summ(spacy_model, body, coreference, greedyness, min_lenght,max_lenght,bert_
 
     else:
         model = Summarizer(custom_model=custom_model, custom_tokenizer=custom_tokenizer)
-        result = model(body, min_length=min_lenght,max_length=max_lenght)
+        result = model(body, ratio=ratio,min_length=min_lenght,max_lenght=max_lenght)
         full = ''.join(result)
     return full
