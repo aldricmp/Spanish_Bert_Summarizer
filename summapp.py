@@ -1,81 +1,98 @@
-# Streamlit Front End for Spanish Bert Summarizer
+# Streamlit Front End for News Media Analysis
 import base64
 import streamlit as st
 import summ as sm
 import keywordgen as kw
-from collections import Counter
-import matplotlib.pyplot as plt
-from wordcloud import WordCloud,ImageColorGenerator
-import numpy as np
-from PIL import Image
+import cloudgenerator as wc
+import newsscrapper as ns
+import time
 
-f = open("nota.txt", "r")
-body = f.read()
-# Parameters
-ratio=0.2
+# Model Parameters
+ratio = 0.2
 coreference = True
-greedyness = 0.40
+greediness = 0.40
 min_lenght = 75
 max_lenght = 600
 spacy_model = ('es_core_news_sm', 'es_core_news_md')
 bert_model_dic = ("dccuchile/bert-base-spanish-wwm-cased",
                   "mrm8488/bert-spanish-cased-finetuned-pos",
                   "mrm8488/bert-spanish-cased-finetuned-ner")
+# Input paramaters
+instagram_html = ''
+tweet_html = ''
+video_html = ''
+url = 'https://www.milenio.com/politica/amlo-visita-presidente-mexico-aterriza-washington'
 
 # SideBar Widgets
 st.sidebar.image("http://www.scientive-ai.com/wp-content/uploads/2020/06/scientive_logo_300.png")
 st.sidebar.markdown('# Ajustes')
-st.sidebar.number_input('Ratio %',0.0,1.0,ratio)
+st.sidebar.number_input('Ratio %', 0.0, 1.0, ratio)
 min_lenght = st.sidebar.number_input('Cantidad mínima de caracteres en oración', 30, 500, min_lenght)
 max_lenght = st.sidebar.number_input('Cantidad máxima de caracteres en oración', 30, 600, max_lenght)
 st.sidebar.markdown('## Parámetros avanzados')
 coreference = st.sidebar.checkbox('Coreference', coreference)
 if coreference:
-    greedyness = st.sidebar.slider('Coreference Greediness', 0.35, 0.45, greedyness)
+    greediness = st.sidebar.slider('Coreference Greediness', 0.35, 0.45, greediness)
 bert_model = st.sidebar.selectbox(label='BERT', options=bert_model_dic)
 spacy_model = st.sidebar.selectbox(label='SpaCy', options=spacy_model)
 
-
-
-
 # Main Page
+
+# Header
 st.image("http://www.scientive-ai.com/wp-content/uploads/2020/06/scientive_logo_300.png")
-st.title('Resumen de Textos')
-'''
-## Entrada
-### Introduce el texto a resumir
-'''
+st.title('Análisis de Notas Informativas')
+
+# Source Selection
+'''## Fuente'''
+input_selection = st.radio(label='', options=('URL', 'Texto'))
+# Get URL content or example text from file ==> load it on text area
+if input_selection == 'URL':
+    '''### Introduce la dirección URL de la nota a resumir:'''
+    url_input = st.text_input('', url)
+    news_article, body, tweet_html, video_html, instagram_html = ns.get_news_from_url(url_input)
+
+if input_selection == 'Texto':
+    '''### Teclea o pega la nota a resumir'''
+    # Load example text from file
+    f = open("misc/nota.txt", "r")
+    body = f.read()
+    # Turn off  all other news features
+    news_article = None
+
+'''### Nota Informativa:'''
 body = st.text_area(value=body, height=350, label='')
+
+# Process News Contet
 if st.button('Resumir'):
-    per, org, loc, misc, entity_text = kw.get_enr_keywords(body, spacy_model)
-    per_hashtags = [('#' + x[0]) for x in Counter(per).most_common(10)]
-    org_hashtags = [('#' + x[0]) for x in Counter(org).most_common(10)]
-    loc_hashtags = [('#' + x[0]) for x in Counter(loc).most_common(10)]
-    misc_hashtags = [('#' + x[0]) for x in Counter(misc).most_common(100)]
-    hashtags = [('#' + x[0]) for x in Counter(entity_text).most_common(10)]
-    per_hashtags = ' '.join(per_hashtags)
-    org_hashtags = ' '.join(org_hashtags)
-    loc_hashtags = ' '.join(loc_hashtags)
-    misc_hashtags = ' '.join(misc_hashtags)
-    hashtags = ' '.join(hashtags)
+    tic = time.time()
+    with st.spinner('Leyendo...'):
 
+        # Generate hashtagged keywords
+        per_hashtags, org_hashtags, loc_hashtags, misc_hashtags, all_hashtags = kw.hashtag_keywords(body, spacy_model)
+        # Generate wordcloud
+        wordcloud = wc.generate_wordcloud(all_hashtags)
 
-    summarized_text = sm.Summ(spacy_model, body,ratio, coreference, greedyness, min_lenght, max_lenght, bert_model)
+    with st.spinner('Resumiendo, puede tomarme un momento...'):
+        # Summarize News Text
+        summarized_text = sm.Summ(spacy_model, body, ratio, coreference, greediness, min_lenght, max_lenght, bert_model)
+    st.success('!Listo¡')
 
+    # Display Results
     '''## Resumen'''
-    '''#### Nube de Palabras'''
-    mask = np.array(Image.open("mex.png"))
-    wordcloud_mex = WordCloud(background_color="white", mode="RGBA", max_words=1000, mask=mask).generate(
-        ' '.join(entity_text))
-    image_colors = ImageColorGenerator(mask)
-    plt.figure(figsize=[5, 3])
-    plt.imshow(wordcloud_mex.recolor(color_func=image_colors), interpolation="bilinear")
-    plt.axis("off")
-    wordcloud_mex.to_file("flag_cloud.png")
-    st.image("flag_cloud.png")
-    '''#### Palabras clave'''
+    if news_article:
+        '''### Título:'''
+        st.markdown('''### ''' + ''.join(news_article.title))
+        '''#### Autor(es):'''
+        st.markdown(' '.join(news_article.authors))
+        '''#### Fecha:'''
+        st.write(news_article.publish_date)
+        '''#### Imágen Principal:'''
+        st.image(news_article.top_image, width=600)
+    '''#### Nube de Palabras:'''
+    st.image(wordcloud)
+    '''#### Palabras clave:'''
     '''#### Frecuencia'''
-    st.write(hashtags)
+    st.write(all_hashtags)
     '''#### Personas'''
     st.write(per_hashtags)
     '''#### Organizaciones'''
@@ -83,23 +100,27 @@ if st.button('Resumir'):
     '''#### Ubicaciones'''
     st.write(loc_hashtags)
     '''#### Misceláneas (candidatas a eliminar)'''
-    st.write(misc_hashtags)
-    '''#### Resumen'''
+    st.markdown('''~~''' + misc_hashtags + '''~~''')
+    '''#### Resumen:'''
     st.write(summarized_text)
-    df = hashtags + "\r\n"+ per_hashtags + "\r\n"+ org_hashtags + "\r\n"+ loc_hashtags + "\r\n"+ misc_hashtags + "\r\n"+ summarized_text
-    csv = df
-    b64 = base64.b64encode(df.encode()).decode()  # some strings <-> bytes conversions necessary here
-    href = f'<a href="data:file/csv;base64,{b64}" download="resumen.txt">Descargar Resumen</a>'
+
+    saved_text = all_hashtags + "\r\n" + per_hashtags + "\r\n" + org_hashtags + "\r\n" + loc_hashtags + "\r\n" \
+                 + misc_hashtags + "\r\n" + summarized_text + "\r\n" + tweet_html + "\r\n" + instagram_html + "\r\n" + \
+                 video_html
+    # some strings <-> bytes conversions necessary here
+    b64 = base64.b64encode(saved_text.encode()).decode()
+    # Generate download link
+    href = f'<a href="data:file/txt;base64,{b64}" download="resumen.txt">Descargar Resumen</a>'
     st.markdown(href, unsafe_allow_html=True)
 
-
-
-
-
-
-
-
-
-
-
-
+    if news_article:
+        '''### Twitter:'''
+        st.markdown(tweet_html, unsafe_allow_html=True)
+        '''### Instagram:'''
+        st.markdown(instagram_html, unsafe_allow_html=True)
+        '''### Videos:'''
+        st.markdown(''.join(news_article.movies), unsafe_allow_html=True)
+        if video_html != '':
+            st.video(str(video_html))
+    toc=time.time()
+    st.write('Terminado en ' + "{:.2f} ".format(toc-tic)+'segs.')
