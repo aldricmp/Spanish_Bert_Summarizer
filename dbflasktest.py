@@ -26,7 +26,7 @@ print(s.encode('utf-8'))   #AQUÍ ME MARCABA EL ERROR "UnicodeEncodeError: 'asci
 
 app = Flask(__name__)
 
-@app.route("/")
+@app.route("/dbcontest")
 def conect():
     return s
 if __name__ == "__main__":
