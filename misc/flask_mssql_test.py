@@ -1,7 +1,5 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-import db_model as db
-
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = '''mssql+pyodbc://scientive:*&{a2$&[H#c@0"![>8I]+p5[n9/}38D%3(5<`R:hv4#+.]%2]>"m''=a,@6`'QU.@2]/Fm8hq7%1y)s|"`)bF7~2'?,<{yx\=@dbcontrol.mediasolutions.mx/MSGBLOBAL?driver=ODBC Driver 17 for SQL Server'''
