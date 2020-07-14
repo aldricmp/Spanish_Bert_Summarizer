@@ -1,0 +1,5 @@
+flask sqlalchemy:
+'''mssql+pyodbc://scientive:*&{a2$&[H#c@0"![>8I]+p5[n9/}38D%3(5<`R:hv4#+.]%2]>"m''=a,@6`'QU.@2]/Fm8hq7%1y)s|"`)bF7~2'?,<{yx\=@dbcontrol.mediasolutions.mx/MSGBLOBAL?driver=ODBC Driver 17 for SQL Server'''
+
+sqlacodegen (Terminal):
+sqlacodegen 'mssql+pyodbc://scientive:*&{a2$&[H#c@0"![>8I]+p5[n9/}38D%3(5<`R:hv4#+.]%2]>"m'"''"'=a,@6`'"'"'QU.@2]/Fm8hq7%1y)s|"`)bF7~2'"'"'?,<{yx\=@dbcontrol.mediasolutions.mx/MSGBLOBAL?driver=ODBC Driver 17 for SQL Server' --outfile db_model.py
